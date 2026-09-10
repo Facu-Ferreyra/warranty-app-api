@@ -5,10 +5,9 @@ import { UsersModule } from '../users/users.module.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js'; 
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 
 @Module({
-  imports: [UsersModule,PassportModule.register({}), JwtModule.register({})],
+  imports: [UsersModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [AuthService, JwtModule,JwtStrategy,JwtRefreshStrategy],
 })
