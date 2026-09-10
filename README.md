@@ -1,114 +1,101 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# warranty-app-api
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend del Cuarto Proyecto Integrador — Backend con NestJS. API REST para **Warranty App**, una aplicación para registrar productos comprados y hacer seguimiento automático del vencimiento de sus garantías.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- **Autor:** Facundo Ferreyra
+- **Idea heredada del Segundo Proyecto Integrador:** [warranty-app](https://github.com/FranciscoDevelopment/warranty-app) (React + Vite + Zustand). Este backend reemplaza el `localStorage` de esa entrega por una API real con base de datos, autenticación de usuarios y seguridad.
 
-## Description
+## Qué hace
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+El usuario registra productos con su fecha de compra, duración de garantía y categoría, adjuntando opcionalmente el comprobante de compra. La API calcula automáticamente si la garantía está **vigente**, **por vencer** o **vencida**, y permite filtrar los productos por categoría, estado y nombre.
 
-## Project setup
+## Tecnologías
+
+- **Framework:** NestJS 12 (ESM + `moduleResolution: nodenext`)
+- **Lenguaje:** TypeScript
+- **ORM:** Prisma 6, fijado explícitamente en `package.json`
+- **Base de datos:** PostgreSQL, gestionada por Supabase
+- **Autenticación:** `@nestjs/jwt` + `@nestjs/passport` + `passport-jwt` — JWT de access (15 min) y refresh (7 días) con secrets independientes
+- **Hasheo:** `bcrypt`
+- **Validación:** `class-validator` + `class-transformer`
+- **Seguridad:** `helmet`, CORS explícito, `@nestjs/throttler` (rate limiting global y reforzado en `/auth/login` y `/auth/register`)
+- **Fechas:** `date-fns`
+- **Tests:** Vitest (e2e sobre el flujo de Auth)
+- **Package manager:** pnpm
+
+## Instalación
 
 ```bash
-$ pnpm install
+git clone https://github.com/Facu-Ferreyra/warranty-app-api.git
+cd warranty-app-api
+pnpm install
+pnpm approve-builds   # necesario para compilar el binario nativo de bcrypt
+cp .env.example .env  # completar con valores reales, ver tabla abajo
+npx prisma migrate dev
+pnpm start:dev
 ```
 
-## Compile and run the project
+## Variables de entorno
+
+| Variable | Descripción |
+|---|---|
+| `DATABASE_URL` | Connection string de PostgreSQL. Con Supabase, usar el **Session Pooler** (`postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres`) — la conexión directa es IPv6-only y falla en redes que no lo soportan. |
+| `JWT_SECRET` | Secret para firmar access tokens. Generar con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
+| `JWT_REFRESH_SECRET` | Secret para firmar refresh tokens. Debe ser **distinto** al anterior. |
+| `FRONTEND_URL` | Origen permitido por CORS (ej. `http://localhost:5173`). |
+| `PORT` | Opcional, default `3000`. |
+
+## Links
+
+- **Repositorio:** https://github.com/Facu-Ferreyra/warranty-app-api
+- **Deploy:** https://warranty-app-api.onrender.com
+
+> El servicio corre en el free tier de Render: si no recibió tráfico en los últimos ~15 minutos, la primera request puede tardar unos segundos extra (cold start).
+
+## Endpoints
+
+### Auth
+
+| Método | Ruta | Descripción | Protegida |
+|---|---|---|---|
+| POST | `/auth/register` | Crea un usuario nuevo | No |
+| POST | `/auth/login` | Devuelve access y refresh token | No |
+| POST | `/auth/refresh` | Renueva el access token (rota el refresh token) | Sí (refresh token) |
+| POST | `/auth/logout` | Invalida el refresh token del usuario | Sí (access token) |
+| GET | `/auth/me` | Devuelve los datos del usuario autenticado | Sí (access token) |
+
+### Categories
+
+| Método | Ruta | Descripción | Protegida |
+|---|---|---|---|
+| POST | `/categories` | Crea una categoría propia | Sí |
+| GET | `/categories` | Lista las categorías del usuario | Sí |
+| GET | `/categories/:id` | Detalle de una categoría propia | Sí |
+| PATCH | `/categories/:id` | Renombra una categoría propia | Sí |
+| DELETE | `/categories/:id` | Borra una categoría propia (falla si tiene productos asociados) | Sí |
+
+### Products
+
+| Método | Ruta | Descripción | Protegida |
+|---|---|---|---|
+| POST | `/products` | Crea un producto (requiere `categoryId` propio) | Sí |
+| GET | `/products` | Lista productos propios. Filtros por query: `categoryId`, `status` (`vigente`\|`por_vencer`\|`vencida`), `search` | Sí |
+| GET | `/products/:id` | Detalle de un producto propio (incluye `receiptBase64` completo) | Sí |
+| PATCH | `/products/:id` | Actualiza un producto propio | Sí |
+| DELETE | `/products/:id` | Borra un producto propio | Sí |
+
+Todas las rutas protegidas requieren el header `Authorization: Bearer <accessToken>`.
+
+## Decisiones de diseño relevantes
+
+- **Comprobante de compra:** se persiste en base64 (`receiptBase64`), embebido en la fila de `Product`. El listado (`GET /products`) no devuelve el base64 completo (solo `hasReceipt: boolean`), para no inflar la respuesta; el detalle (`GET /products/:id`) sí lo incluye.
+- **`expirationDate` y `status`:** no se persisten como columnas — se calculan en `ProductsService` a partir de `purchaseDate` + `warrantyMonths` en cada consulta, para no desincronizarse del día real.
+- **Categorías:** son privadas por usuario, no un catálogo global.
+
+## Tests
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm run test:e2e
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Cubre el flujo completo de Auth: registro de usuario, login con credenciales válidas, y rechazo de credenciales inválidas.
