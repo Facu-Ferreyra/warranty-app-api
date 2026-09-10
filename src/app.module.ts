@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { GlobalPassportModule } from './auth/global-passport.module.js';
+import { ProductsModule } from './products/products.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GlobalPassportModule } from './auth/global-passport.module.js';
     UsersModule,
     AuthModule,
     CategoriesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
