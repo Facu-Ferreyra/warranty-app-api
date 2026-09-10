@@ -7,24 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Modelo de Datos
 model User {
-  id               String    @id @default(uuid())
-  email            String    @unique
-  passwordHash     String
-  refreshTokenHash String?
-  createdAt        DateTime  @default(now())
-  products         Product[]
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  refreshTokenHash String? // hash del refresh token vigente, para poder invalidar en logout
+  createdAt    DateTime  @default(now())
+  products     Product[]
+  categories   Category[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  products  Product[]
+
+  @@unique([userId, name]) // no puede repetirse el mismo nombre de categoría dos veces para el mismo usuario
 }
 
 model Product {
-  id             String   @id @default(uuid())
-  name           String
-  category       String
-  purchaseDate   DateTime
-  warrantyMonths Int
-  receiptBase64  String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
+  id                String   @id @default(uuid())
+  name              String
+  purchaseDate      DateTime
+  warrantyMonths    Int       // duración de la garantía en meses
+  receiptBase64     String?   // comprobante embebido en base64, ver sección 7 (límites de tamaño)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  categoryId        String
+  category          Category  @relation(fields: [categoryId], references: [id])
 }
